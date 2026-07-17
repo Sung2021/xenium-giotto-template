@@ -106,6 +106,19 @@ if (config$aggregation_unit == "nucleus" && !config$load_transcripts) {
   )
 }
 
+positive_integer_fields <- c(
+  "pca_dims", "neighbor_k", "leiden_iterations", "marker_top_n",
+  "reference_feature_min_cells", "reference_cell_min_features",
+  "reference_pca_dims", "integration_dims",
+  "integration_min_shared_features", "label_transfer_k"
+)
+for (field in positive_integer_fields) {
+  value <- config[[field]]
+  if (length(value) != 1L || is.na(value) || value < 1L) {
+    stop("Configuration value '", field, "' must be a positive integer.")
+  }
+}
+
 config$objects_dir <- file.path(config$results_dir, "objects")
 config$figures_dir <- file.path(config$results_dir, "figures")
 config$tables_dir <- file.path(config$results_dir, "tables")
