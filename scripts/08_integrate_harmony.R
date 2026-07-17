@@ -55,6 +55,16 @@ xenium_join <- setGiotto(
     spat_unit = config$aggregation_unit
   ]
 )
+xenium_metadata <- data.table::as.data.table(
+  pDataDT(xenium_gobject, spat_unit = config$aggregation_unit)
+)[, .(cell_ID, original_cell_ID = cell_ID)]
+xenium_join <- addCellMetadata(
+  xenium_join,
+  new_metadata = xenium_metadata,
+  spat_unit = config$aggregation_unit,
+  by_column = TRUE,
+  column_cell_ID = "cell_ID"
+)
 
 joined_gobject <- joinGiottoObjects(
   list(reference_join[shared_features], xenium_join[shared_features]),
