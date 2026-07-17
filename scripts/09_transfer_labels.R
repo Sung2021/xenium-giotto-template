@@ -43,14 +43,21 @@ plotUMAP(
 transfer_metadata <- as.data.table(pDataDT(joined_gobject))
 transfer_metadata <- transfer_metadata[
   list_ID == "xen",
-  c("cell_ID", transfer_column, probability_column),
+  c("original_cell_ID", transfer_column, probability_column),
   with = FALSE
 ]
-transfer_metadata[, cell_ID := sub("^xen-", "", cell_ID)]
+if (anyNA(transfer_metadata$original_cell_ID)) {
+  stop("Joined Xenium metadata contains missing original cell identifiers.")
+}
+if (anyDuplicated(transfer_metadata$original_cell_ID)) {
+  stop("Joined Xenium metadata contains duplicated original cell identifiers.")
+}
+data.table::setnames(transfer_metadata, "original_cell_ID", "cell_ID")
 
 xenium_gobject <- addCellMetadata(
   xenium_gobject,
   new_metadata = transfer_metadata,
+  spat_unit = config$aggregation_unit,
   by_column = TRUE,
   column_cell_ID = "cell_ID"
 )
