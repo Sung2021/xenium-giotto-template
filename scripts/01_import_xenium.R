@@ -1,7 +1,7 @@
 source("scripts/helpers.R")
 config <- load_project_config()
 ensure_directories(config)
-require_xenium_directory(config$xenium_dir)
+require_directory(config$xenium_dir, "Xenium output directory")
 
 library(Giotto)
 set_giotto_python_path(config$python_path)
@@ -34,24 +34,11 @@ if (config$legacy_probe_splitting) {
   )
 }
 
-message("Importing Xenium data from: ", config$xenium_dir)
+message(
+  "Importing Xenium data in ",
+  if (config$load_transcripts) "full transcript" else "low-memory matrix",
+  " mode from: ", config$xenium_dir
+)
 xenium_gobject <- do.call(createGiottoXeniumObject, import_args)
 
-if (config$load_transcripts) {
-  message("Aggregating RNA transcript detections within cell polygons.")
-  xenium_gobject <- calculateOverlapRaster(
-    xenium_gobject,
-    spatial_info = "cell",
-    feat_info = "rna"
-  )
-  xenium_gobject <- overlapToMatrix(
-    xenium_gobject,
-    poly_info = "cell",
-    feat_info = "rna",
-    name = "raw"
-  )
-}
-
-output_path <- file.path(config$objects_dir, "01_imported.rds")
-saveRDS(xenium_gobject, output_path)
-message("Saved imported object: ", output_path)
+save_stage(xenium_gobject, config, "01_imported")
