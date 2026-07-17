@@ -52,6 +52,26 @@ bash run_pipeline.sh
 
 `scripts/00_setup.R` is intentionally not part of the runner because dependency installation should normally happen once. The runner executes steps 01-06 every time.
 
+The runner resolves the repository root automatically, checks that `Rscript`, the configuration, helpers, and every requested step exist, and stops at the first failed stage.
+
+### Stage execution contract
+
+Every numbered script reads the checkpoint listed below. Run an individual script only after its required checkpoint exists.
+
+| Script | Required checkpoint | Checkpoint written |
+|---|---|---|
+| `01_import_xenium.R` | none | `01_imported.rds` |
+| `02_attach_images.R` | `01_imported.rds` | `02_images.rds` |
+| `03_qc_aggregate.R` | `02_images.rds` | `03_aggregated.rds` |
+| `04_process_cluster.R` | `03_aggregated.rds` | `04_clustered.rds` |
+| `05_visualize_subcellular.R` | `04_clustered.rds` | `05_visualized.rds` |
+| `06_detect_markers.R` | `05_visualized.rds` | `06_markers.rds` |
+| `07_process_scrna_reference.R` | none; requires configured reference files | `07_reference.rds` |
+| `08_integrate_harmony.R` | `06_markers.rds`, `07_reference.rds` | `08_harmony.rds` |
+| `09_transfer_labels.R` | `06_markers.rds`, `08_harmony.rds` | `09_joined_labeled.rds`, `09_xenium_labeled.rds` |
+
+Changing settings does not automatically invalidate old checkpoints. Delete or move incompatible downstream checkpoint files before rerunning from the stage whose inputs changed.
+
 ## Import modes
 
 ### Low-memory mode: default
@@ -158,6 +178,11 @@ export GIOTTO_REFERENCE_MITO_MAX=50
 export GIOTTO_REFERENCE_RUN_SCRUBLET=true
 export GIOTTO_REFERENCE_PCA_DIMS=30
 export GIOTTO_REFERENCE_LEIDEN_RESOLUTION=1.5
+
+# Dataset-specific integration and transfer settings
+export GIOTTO_INTEGRATION_DIMS=10
+export GIOTTO_MIN_SHARED_FEATURES=20
+export GIOTTO_LABEL_TRANSFER_K=10
 ```
 
 Run steps 07-09 with the core workflow:
@@ -176,6 +201,8 @@ Rscript scripts/09_transfer_labels.R
 ```
 
 Step 08 saves the shared-gene list and both unintegrated and Harmony UMAPs. Inspect these before interpreting transferred labels. Step 09 saves a per-cell label and probability table; low-confidence or biologically implausible assignments should not be used downstream without review.
+
+The reference annotation CSV must contain `cluster` plus the column named by `GIOTTO_REFERENCE_LABEL`. Choose `GIOTTO_INTEGRATION_DIMS` only after inspecting the joined PCA, and tune `GIOTTO_LABEL_TRANSFER_K` for reference size and cell-type granularity. The workflow stores each Xenium cell's original identifier before joining, so label transfer does not depend on stripping a hard-coded `xen-` prefix.
 
 ## Outputs and restart points
 
