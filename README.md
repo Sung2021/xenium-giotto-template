@@ -41,6 +41,8 @@ Run all analysis steps after setup with:
 bash run_pipeline.sh
 ```
 
+`scripts/00_setup.R` is a one-time manual environment setup step. `run_pipeline.sh` intentionally runs only the repeatable core analysis steps: import, processing/clustering, and visualization. It does not rerun setup or the optional reference label-transfer scaffold.
+
 ## Choose an import mode
 
 The default is the lower-memory mode:
@@ -79,9 +81,11 @@ Project data and results are ignored by Git. Keep raw Xenium data outside the re
 
 The pipeline writes intermediate Giotto objects to `results/objects/` and figures to `results/figures/`. Each step saves an object so a failed downstream step can be restarted without repeating import.
 
-## Optional reference label transfer
+## Optional, dataset-specific reference label transfer
 
-The source tutorial integrates Xenium with paired scRNA-seq data using Harmony and transfers cell-type labels. That step is biologically dataset-specific. `scripts/04_label_transfer_template.R` contains a guarded scaffold; supply a processed, annotated Giotto single-cell object before using it.
+This is not part of the core pipeline. The source tutorial integrates Xenium with paired scRNA-seq data using Harmony and transfers cell-type labels, but that step depends on the reference dataset, its annotations, and feature overlap with the Xenium panel.
+
+`scripts/04_label_transfer_template.R` is therefore a guarded scaffold, not a ready-to-run default. Supply a processed and annotated Giotto single-cell object, then verify reference quality, shared features, batch effects, transferred-label probabilities, and biological plausibility before using the labels downstream.
 
 ## Notes
 
