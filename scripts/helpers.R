@@ -7,7 +7,18 @@ load_project_config <- function() {
   if (!file.exists(config_path)) {
     stop("Run this script from the repository root, or set PROJECT_ROOT.")
   }
-  source(config_path, local = TRUE)$value
+
+  config_environment <- new.env(parent = baseenv())
+  sys.source(config_path, envir = config_environment)
+  if (!exists("config", envir = config_environment, inherits = FALSE)) {
+    stop("Configuration file did not create a 'config' object: ", config_path)
+  }
+
+  config <- get("config", envir = config_environment, inherits = FALSE)
+  if (!is.list(config)) {
+    stop("The 'config' object must be a list: ", config_path)
+  }
+  config
 }
 
 ensure_directories <- function(config) {
@@ -15,7 +26,11 @@ ensure_directories <- function(config) {
     config$results_dir, config$objects_dir, config$figures_dir,
     config$tables_dir, config$image_export_dir
   )
-  invisible(vapply(dirs, dir.create, logical(1), recursive = TRUE, showWarnings = FALSE))
+  for (path in unique(dirs)) {
+    dir.create(path, recursive = TRUE, showWarnings = FALSE)
+    if (!dir.exists(path)) stop("Could not create output directory: ", path)
+  }
+  invisible(dirs)
 }
 
 require_directory <- function(path, label = "directory") {
